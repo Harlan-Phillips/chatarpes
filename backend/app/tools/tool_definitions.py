@@ -1,0 +1,83 @@
+"""
+Tool definitions for the LLM function-calling interface.
+
+These are the tools the LLM can invoke based on user messages.
+Each tool maps to a function in the analysis engine.
+"""
+
+TOOLS = [
+    {
+        "name": "load_pxt",
+        "description": "Load a .pxt file from a Scienta hemispherical analyzer and return an xarray DataArray.",
+        "parameters": {
+            "filepath": {"type": "string", "description": "Path to the .pxt file"},
+        },
+    },
+    {
+        "name": "plot_band_structure",
+        "description": "Generate a 2D intensity map (energy x emission angle) from ARPES data.",
+        "parameters": {
+            "filepath": {"type": "string", "description": "Path to the .pxt file"},
+            "energy_range": {
+                "type": "array",
+                "description": "Optional [min, max] energy range in eV",
+            },
+            "colormap": {
+                "type": "string",
+                "description": "Matplotlib colormap name",
+                "default": "viridis",
+            },
+            "smoothing": {
+                "type": "number",
+                "description": "Gaussian smoothing sigma",
+                "default": 0,
+            },
+        },
+    },
+    {
+        "name": "compute_differential",
+        "description": "Compute the differential map by subtracting a reference scan from a pumped scan.",
+        "parameters": {
+            "reference_path": {
+                "type": "string",
+                "description": "Path to reference (pump-off) .pxt file",
+            },
+            "pumped_path": {
+                "type": "string",
+                "description": "Path to pumped .pxt file",
+            },
+        },
+    },
+    {
+        "name": "plot_differential",
+        "description": "Generate a red/white/blue differential map from pump-probe subtraction.",
+        "parameters": {
+            "reference_path": {"type": "string"},
+            "pumped_path": {"type": "string"},
+            "colormap": {"type": "string", "default": "RdBu_r"},
+            "energy_range": {"type": "array"},
+            "symmetric_clim": {
+                "type": "boolean",
+                "description": "Force symmetric color limits",
+                "default": True,
+            },
+        },
+    },
+    {
+        "name": "extract_metadata",
+        "description": "Extract metadata from a .pxt file header (delay stage position, temperature, etc.).",
+        "parameters": {
+            "filepath": {"type": "string", "description": "Path to the .pxt file"},
+        },
+    },
+    {
+        "name": "lookup_material",
+        "description": "Look up properties of a material (lattice constants, band gap, space group, etc.).",
+        "parameters": {
+            "material_name": {
+                "type": "string",
+                "description": "Material name or chemical formula",
+            },
+        },
+    },
+]

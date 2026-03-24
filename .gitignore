@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+frontend/build/
+frontend/dist/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Data (large files - track with git-lfs or keep local)
+data/sample_pxt/*.pxt
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# Vector DB
+knowledge/rag_corpus/chroma_db/

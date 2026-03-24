@@ -1,0 +1,30 @@
+# Core
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# LLM - uncomment based on chosen option
+# Option B/C: Anthropic API
+# anthropic>=0.39.0
+
+# Option A: Local model
+# vllm>=0.4.0
+# or
+# llama-cpp-python>=0.2.0
+
+# Analysis engine
+numpy>=1.24.0
+xarray>=2023.1.0
+matplotlib>=3.7.0
+scipy>=1.10.0
+# arpes  # TODO: confirm PyARPES package name and version
+# igorpy  # TODO: confirm .pxt loader dependency
+
+# Knowledge / RAG
+# chromadb>=0.4.0  # uncomment when RAG is implemented
+# sentence-transformers>=2.2.0  # for embeddings
+
+# Auth
+# TODO: add auth dependencies based on chosen method
+# python-jose[cryptography]  # for JWT
+# authlib  # for OAuth

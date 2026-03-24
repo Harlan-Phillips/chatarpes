@@ -1,0 +1,126 @@
+{
+  "_comment": "PLACEHOLDER: Material properties database. Lab lead: please review and fill in missing values. Add more materials as needed.",
+  "_source_note": "Values should be verified against lab references. Mark uncertain values with null.",
+  "materials": [
+    {
+      "name": "1T-TaS2",
+      "formula": "TaS2",
+      "polytype": "1T",
+      "crystal_structure": "hexagonal",
+      "space_group": "P-3m1",
+      "lattice_constants": {
+        "a": 3.36,
+        "c": 5.90,
+        "units": "angstrom"
+      },
+      "band_gap_eV": null,
+      "cdw_transition_temperature_K": 180,
+      "topological_classification": null,
+      "notes": "Commensurate CDW phase below 180K. PLACEHOLDER: confirm values with lab lead.",
+      "key_references": ["PLACEHOLDER: DOIs needed"]
+    },
+    {
+      "name": "Graphene",
+      "formula": "C",
+      "crystal_structure": "hexagonal",
+      "space_group": "P6/mmm",
+      "lattice_constants": {
+        "a": 2.46,
+        "c": null,
+        "units": "angstrom"
+      },
+      "band_gap_eV": 0,
+      "cdw_transition_temperature_K": null,
+      "topological_classification": null,
+      "notes": "Zero-gap semiconductor with linear dispersion at K point.",
+      "key_references": ["PLACEHOLDER: DOIs needed"]
+    },
+    {
+      "name": "Bi2Se3",
+      "formula": "Bi2Se3",
+      "crystal_structure": "rhombohedral",
+      "space_group": "R-3m",
+      "lattice_constants": {
+        "a": 4.14,
+        "c": 28.64,
+        "units": "angstrom"
+      },
+      "band_gap_eV": 0.3,
+      "cdw_transition_temperature_K": null,
+      "topological_classification": "3D topological insulator",
+      "notes": "Prototypical 3D TI with single Dirac cone surface state. PRIORITY TEST MATERIAL.",
+      "key_references": ["PLACEHOLDER: DOIs needed"]
+    },
+    {
+      "name": "WS2",
+      "formula": "WS2",
+      "crystal_structure": "hexagonal",
+      "space_group": "P6_3/mmc",
+      "lattice_constants": {
+        "a": 3.15,
+        "c": 12.32,
+        "units": "angstrom"
+      },
+      "band_gap_eV": 1.35,
+      "cdw_transition_temperature_K": null,
+      "topological_classification": null,
+      "notes": "TMDC. Direct gap in monolayer (~2.0 eV). PLACEHOLDER: confirm bulk vs monolayer values.",
+      "key_references": ["PLACEHOLDER: DOIs needed"]
+    },
+    {
+      "name": "WSe2",
+      "formula": "WSe2",
+      "crystal_structure": "hexagonal",
+      "space_group": "P6_3/mmc",
+      "lattice_constants": {
+        "a": 3.28,
+        "c": 12.96,
+        "units": "angstrom"
+      },
+      "band_gap_eV": 1.20,
+      "cdw_transition_temperature_K": null,
+      "topological_classification": null,
+      "notes": "TMDC. PLACEHOLDER: confirm values with lab lead.",
+      "key_references": ["PLACEHOLDER: DOIs needed"]
+    },
+    {
+      "name": "MoS2",
+      "formula": "MoS2",
+      "crystal_structure": "hexagonal",
+      "space_group": "P6_3/mmc",
+      "lattice_constants": {
+        "a": 3.16,
+        "c": 12.30,
+        "units": "angstrom"
+      },
+      "band_gap_eV": 1.23,
+      "cdw_transition_temperature_K": null,
+      "topological_classification": null,
+      "notes": "TMDC. Direct gap in monolayer (~1.9 eV).",
+      "key_references": ["PLACEHOLDER: DOIs needed"]
+    },
+    {
+      "name": "MoSe2",
+      "formula": "MoSe2",
+      "crystal_structure": "hexagonal",
+      "space_group": "P6_3/mmc",
+      "lattice_constants": {
+        "a": 3.29,
+        "c": 12.93,
+        "units": "angstrom"
+      },
+      "band_gap_eV": 1.10,
+      "cdw_transition_temperature_K": null,
+      "topological_classification": null,
+      "notes": "TMDC. PLACEHOLDER: confirm values.",
+      "key_references": ["PLACEHOLDER: DOIs needed"]
+    }
+  ],
+  "_lab_lead_notes": [
+    "PLACEHOLDER: Please add 15-20 more materials commonly studied in Harmony Lab",
+    "PLACEHOLDER: Verify all lattice constants and band gaps against lab references",
+    "PLACEHOLDER: Add CDW temperatures for relevant materials",
+    "PLACEHOLDER: Add topological classifications where applicable",
+    "PLACEHOLDER: Provide DOIs for key references per material"
+  ]
+}
