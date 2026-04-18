@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import os
 import re
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -20,20 +19,16 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-# Make the repo root importable so `from analysis...` works whether the
-# server is launched from `backend/` or from the repo root.
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
-
-from analysis.trarpes import (  # noqa: E402
+# Repo-root path surgery happens once in `app/__init__.py`, so plain
+# `from analysis...` works here regardless of the CWD.
+from analysis.trarpes import (
     check_trarpes_compat_cached,
     compute_panels,
     discover_scans,
     load_scan,
     render_png,
 )
-from app.config import MAX_UPLOAD_SIZE_MB, TRARPES_DATA_DIR  # noqa: E402
+from app.config import MAX_UPLOAD_SIZE_MB, TRARPES_DATA_DIR
 
 router = APIRouter(prefix="/trarpes", tags=["trarpes"])
 

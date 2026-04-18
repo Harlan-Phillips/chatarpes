@@ -274,6 +274,21 @@ def test_load_kaindl_pxt_no_waves_raises(tmp_path, monkeypatch):
         load_kaindl_pxt(p)
 
 
+def test_load_kaindl_pxt_raises_dependency_error_when_igor2_missing(tmp_path, monkeypatch):
+    """If igor2 is unavailable, surface a clear Pxt2DependencyError — not a decode error."""
+
+    def _raises_dep(path, initial_byte_order):
+        raise kaindl_pxt.Pxt2DependencyError(
+            "igor2 is required to load .pxt files."
+        )
+
+    monkeypatch.setattr(kaindl_pxt, "_packed_load", _raises_dep)
+    p = tmp_path / "scan_031.pxt"
+    p.write_bytes(b"fake")
+    with pytest.raises(kaindl_pxt.Pxt2DependencyError, match="igor2 is required"):
+        load_kaindl_pxt(p)
+
+
 def test_load_kaindl_pxt_picks_largest_wave(tmp_path, monkeypatch):
     """A .pxt may have multiple waves; we should pick the biggest (the spectrum)."""
     eV = np.linspace(-1, 0, 10)

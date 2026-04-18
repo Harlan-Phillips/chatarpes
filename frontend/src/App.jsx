@@ -5,6 +5,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import TrarpesWidget from "./components/TrarpesWidget";
+import { gatherDroppedFiles } from "./utils/dragAndDrop";
 
 const API_URL = "http://localhost:8000";
 
@@ -177,47 +178,6 @@ export default function App() {
   const removeAttachment = useCallback((id) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }, []);
-
-  // Drag-drop directory traversal (mirrors the widget's logic)
-  const traverseEntry = async (entry, out) => {
-    if (entry.isFile) {
-      await new Promise((resolve) => {
-        entry.file(
-          (f) => {
-            out.push(f);
-            resolve();
-          },
-          () => resolve(),
-        );
-      });
-    } else if (entry.isDirectory) {
-      const reader = entry.createReader();
-      let chunk;
-      do {
-        chunk = await new Promise((resolve) =>
-          reader.readEntries(resolve, () => resolve([])),
-        );
-        for (const child of chunk) {
-          await traverseEntry(child, out);
-        }
-      } while (chunk.length > 0);
-    }
-  };
-
-  const gatherDroppedFiles = async (e) => {
-    const items = e.dataTransfer?.items;
-    if (items && items.length && items[0].webkitGetAsEntry) {
-      const out = [];
-      const entries = Array.from(items)
-        .map((it) => it.webkitGetAsEntry && it.webkitGetAsEntry())
-        .filter(Boolean);
-      for (const entry of entries) {
-        await traverseEntry(entry, out);
-      }
-      return out;
-    }
-    return Array.from(e.dataTransfer?.files || []);
-  };
 
   const onPageDrop = async (e) => {
     e.preventDefault();

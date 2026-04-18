@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import createPlotlyComponent from "react-plotly.js/factory";
 import Plotly from "plotly.js-dist-min";
+import { gatherDroppedFiles } from "../utils/dragAndDrop";
 
 const Plot = createPlotlyComponent(Plotly);
 
@@ -30,48 +31,6 @@ function percentile(sortedAscending, pct) {
     Math.max(0, Math.floor(p * (sortedAscending.length - 1))),
   );
   return sortedAscending[idx] || 1;
-}
-
-/** Recursively walk a DataTransferItem directory entry, collecting File objects. */
-async function traverseEntry(entry, out) {
-  if (entry.isFile) {
-    await new Promise((resolve) => {
-      entry.file(
-        (f) => {
-          out.push(f);
-          resolve();
-        },
-        () => resolve(),
-      );
-    });
-  } else if (entry.isDirectory) {
-    const reader = entry.createReader();
-    let chunk;
-    do {
-      chunk = await new Promise((resolve) =>
-        reader.readEntries(resolve, () => resolve([])),
-      );
-      for (const child of chunk) {
-        await traverseEntry(child, out);
-      }
-    } while (chunk.length > 0);
-  }
-}
-
-/** Gather files from a drop event, traversing folders if the browser supports it. */
-async function gatherDroppedFiles(e) {
-  const items = e.dataTransfer?.items;
-  if (items && items.length && items[0].webkitGetAsEntry) {
-    const out = [];
-    const entries = Array.from(items)
-      .map((it) => it.webkitGetAsEntry && it.webkitGetAsEntry())
-      .filter(Boolean);
-    for (const entry of entries) {
-      await traverseEntry(entry, out);
-    }
-    return out;
-  }
-  return Array.from(e.dataTransfer?.files || []);
 }
 
 /** Big drag-drop card shown before any data is loaded. */
@@ -473,16 +432,30 @@ export default function TrarpesWidget({ apiUrl, initialScanA, initialScanB }) {
   const handleUploadComplete = useCallback(
     async (uploaded) => {
       const list = await refreshScans();
-      // Prefer the first two COMPATIBLE uploads as A and B.
+      // Prefer the first two COMPATIBLE uploads. If we didn't get enough
+      // compatible ones from the upload batch, fall back to compatible
+      // scans already on the server. A and B are resolved independently
+      // so a partial fallback for one doesn't starve the other.
       const compat = uploaded.filter((u) => u.compat?.ok !== false);
-      if (compat.length >= 1) setScanA(compat[0].num);
-      if (compat.length >= 2) setScanB(compat[1].num);
-      else if (list.length >= 1) setScanA((cur) => cur ?? firstCompatible(list));
-      else if (list.length >= 2)
-        setScanB((cur) => cur ?? firstCompatible(list, scanA));
+
+      let chosenA = null;
+      if (compat.length >= 1) {
+        chosenA = compat[0].num;
+        setScanA(chosenA);
+      } else if (list.length >= 1) {
+        chosenA = firstCompatible(list);
+        setScanA((cur) => cur ?? chosenA);
+      }
+
+      if (compat.length >= 2) {
+        setScanB(compat[1].num);
+      } else if (list.length >= 2) {
+        setScanB((cur) => cur ?? firstCompatible(list, chosenA));
+      }
+
       setStage("analysis");
     },
-    [refreshScans, firstCompatible, scanA],
+    [refreshScans, firstCompatible],
   );
 
   const handleUseExisting = useCallback(() => {

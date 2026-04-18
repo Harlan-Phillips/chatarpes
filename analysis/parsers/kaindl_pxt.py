@@ -52,19 +52,35 @@ _HEADER_RENAME = {
 # ─── igor2 indirection (lazy + test-patchable) ────────────────────────────────
 # Kept as module attributes so tests can monkeypatch them without having
 # the real igor2 installed. The server can also start even if igor2 is
-# missing — we only raise when someone actually tries to load a .pxt.
+# missing — we only raise when someone actually tries to load a .pxt,
+# and when that happens we surface a clear dependency message (not a
+# generic `IOError` from further down the decode path) so the TR-ARPES
+# routes can report it intelligibly.
+
+
+class Pxt2DependencyError(RuntimeError):
+    """Raised when the real `igor2` package is needed but unavailable."""
+
+
+_IGOR2_HINT = (
+    "igor2 is required to load .pxt files. Install with `pip install igor2`."
+)
+
 
 def _packed_load(path, initial_byte_order):
-    from igor2 import packed
-
+    """Thin wrapper around `igor2.packed.load()` with a clear ImportError message."""
+    try:
+        from igor2 import packed
+    except ImportError as exc:  # pragma: no cover - exercised via explicit test
+        raise Pxt2DependencyError(_IGOR2_HINT) from exc
     return packed.load(path, initial_byte_order=initial_byte_order)
 
 
 def _is_wave_record(obj) -> bool:
     try:
         from igor2.record.wave import WaveRecord
-    except ImportError:
-        return False
+    except ImportError as exc:
+        raise Pxt2DependencyError(_IGOR2_HINT) from exc
     return isinstance(obj, WaveRecord)
 
 
@@ -271,6 +287,11 @@ def load_kaindl_pxt(
             # igor2.packed.load returns (records, filesystem)
             records = result[0] if isinstance(result, tuple) else result
             break
+        except Pxt2DependencyError:
+            # Dependency errors aren't a byte-order issue — propagate so
+            # callers see a clear "install igor2" message instead of the
+            # generic "could not decode" fallback below.
+            raise
         except Exception as e:  # noqa: BLE001 - byte-order probe
             last_err = e
             continue
