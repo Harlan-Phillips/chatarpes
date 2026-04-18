@@ -5,6 +5,37 @@ These are the tools the LLM can invoke based on user messages.
 Each tool maps to a function in the analysis engine.
 """
 
+# Tools wired into the Anthropic Messages API. Shape matches
+# https://docs.anthropic.com/en/api/messages#body-tools
+ANTHROPIC_TOOLS = [
+    {
+        "name": "trarpes_open",
+        "description": (
+            "Open the interactive TR-ARPES analysis widget in the chat. Use this "
+            "whenever the user wants to compare two ARPES scans, compute a "
+            "pump-probe differential (B - A), inspect EDCs, or otherwise work "
+            "with .pxt files. If the user names specific scan numbers (e.g. "
+            "'compare scan 30 and 31'), pass them as scan_a and scan_b — "
+            "otherwise leave both null and let the user pick in the widget."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "scan_a": {
+                    "type": ["integer", "null"],
+                    "description": "Reference (pump-off or earlier-delay) scan number, e.g. 30 for scan_030.pxt.",
+                },
+                "scan_b": {
+                    "type": ["integer", "null"],
+                    "description": "Pumped (later-delay) scan number to subtract the reference from.",
+                },
+            },
+            "required": [],
+        },
+    },
+]
+
+
 TOOLS = [
     {
         "name": "load_pxt",

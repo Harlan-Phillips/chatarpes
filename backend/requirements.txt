@@ -17,8 +17,10 @@ numpy>=1.24.0
 xarray>=2023.1.0
 matplotlib>=3.7.0
 scipy>=1.10.0
-# arpes  # TODO: confirm PyARPES package name and version
-# igorpy  # TODO: confirm .pxt loader dependency
+# Kaindl .pxt loader — cherry-picked from pyarpes (arpes/load_pxt.py).
+# igor2 is the maintained successor to chstan's igor fork, supports Python 3.6+.
+igor2>=0.5.0
+Pillow>=10.0.0
 
 # Knowledge / RAG
 # chromadb>=0.4.0  # uncomment when RAG is implemented
@@ -28,3 +30,7 @@ scipy>=1.10.0
 # TODO: add auth dependencies based on chosen method
 # python-jose[cryptography]  # for JWT
 # authlib  # for OAuth
+
+# Tests
+pytest>=8.0.0
+httpx>=0.27.0  # needed by fastapi.testclient

@@ -12,6 +12,8 @@ import anthropic
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
+from app.tools.tool_definitions import ANTHROPIC_TOOLS
+
 router = APIRouter()
 
 PAPERS_DIR = Path(__file__).resolve().parents[3] / "knowledge" / "papers"
@@ -64,7 +66,38 @@ Available papers:
 
 Example citation: [Source: Buss et al. - 2019 - A setup for extreme-ultraviolet ultrafast angle-re.pdf, Section III.A]
 
-Always include at least one citation per factual claim from the paper. Place citations at the end of the relevant sentence or paragraph."""
+Always include at least one citation per factual claim from the paper. Place citations at the end of the relevant sentence or paragraph.
+
+## Interactive TR-ARPES tool
+When the user wants to compare two TR-ARPES scans, compute a pump-probe differential,
+explore scan_NNN.pxt data, "open the TR-ARPES analysis", or when the user's message
+contains a bracketed hint like `[TR-ARPES tool selected by user. Uploaded scans: ...]`
+— invoke the `trarpes_open` tool. The frontend will render an interactive widget inline.
+
+If the hint lists specific scan numbers (e.g. `scan_030, scan_031`), pass the first as
+`scan_a` and the second as `scan_b`. If the hint says "no scans attached yet", call the
+tool with no arguments.
+
+**Emit a short explanation BEFORE the tool call**, in the same assistant turn, covering:
+  1. What analysis you're setting up (e.g. "A = reference, B = pumped; B − A is the
+     pump-induced change") and, if the user named specific scan numbers, why those
+     choices make sense.
+  2. How to read the differential colormap: **red** = intensity increased after pumping
+     (electrons excited into previously-unoccupied states), **blue** = intensity decreased
+     (depopulation), **white** = no change.
+  3. 2–3 concrete physical signatures to look for that match the material or context the
+     user mentioned — e.g. CDW gap collapse (blue below the gap, red above it), hot
+     electron tails above E_F, coherent phonon oscillations for closely-spaced delays.
+     If you don't know the material, describe the generic TR-ARPES signatures briefly.
+  4. Practical tips: suggest enabling the EDC comparison at a specific phi if relevant,
+     or adjusting smoothing if the differential looks noisy.
+
+Keep the explanation to ~4-8 sentences. Do NOT describe the widget's UI itself —
+describe the physics and what the user should watch for in the plots.
+
+If the user named specific scan numbers, pass them as scan_a (reference) and scan_b
+(pumped); otherwise call the tool with no arguments so the user can upload / pick in
+the widget."""
 
 
 @router.get("/papers/{filename:path}")
@@ -106,6 +139,8 @@ async def chat(request: Request):
 
     def generate():
         current_block_type = None
+        tool_name: str | None = None
+        tool_args_buf = ""
 
         with client.messages.stream(
             model=os.getenv("LLM_MODEL", "claude-haiku-4-5-20251001"),
@@ -114,15 +149,21 @@ async def chat(request: Request):
                 "type": "enabled",
                 "budget_tokens": 10000,
             },
+            tools=ANTHROPIC_TOOLS,
             system=_build_system_prompt(),
             messages=messages,
         ) as stream:
             for event in stream:
                 if event.type == "content_block_start":
-                    if event.content_block.type == "thinking":
+                    block = event.content_block
+                    if block.type == "thinking":
                         current_block_type = "thinking"
-                    elif event.content_block.type == "text":
+                    elif block.type == "text":
                         current_block_type = "text"
+                    elif block.type == "tool_use":
+                        current_block_type = "tool_use"
+                        tool_name = block.name
+                        tool_args_buf = ""
 
                 elif event.type == "content_block_delta":
                     if current_block_type == "thinking" and hasattr(event.delta, "thinking"):
@@ -131,8 +172,20 @@ async def chat(request: Request):
                     elif current_block_type == "text" and hasattr(event.delta, "text"):
                         # AI SDK data stream: text = 0:{json}\n
                         yield f"0:{json.dumps(event.delta.text)}\n"
+                    elif current_block_type == "tool_use" and hasattr(event.delta, "partial_json"):
+                        # Accumulate — tool args stream as a JSON fragment
+                        tool_args_buf += event.delta.partial_json
 
                 elif event.type == "content_block_stop":
+                    if current_block_type == "tool_use" and tool_name:
+                        try:
+                            args = json.loads(tool_args_buf) if tool_args_buf else {}
+                        except json.JSONDecodeError:
+                            args = {}
+                        # Custom frame: 9:{toolName, args}
+                        yield f'9:{json.dumps({"toolName": tool_name, "args": args})}\n'
+                        tool_name = None
+                        tool_args_buf = ""
                     current_block_type = None
 
             # Finish step
