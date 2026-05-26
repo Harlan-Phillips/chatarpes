@@ -17,13 +17,14 @@ load_dotenv(override=True)  # also try CWD, harmless if missing
 
 import os
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
+from app.auth import require_auth
 from app.routes.chat import router as chat_router
 from app.routes.trarpes import router as trarpes_router
 
@@ -53,8 +54,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(chat_router)
-app.include_router(trarpes_router)
+_auth = [Depends(require_auth)]
+app.include_router(chat_router, dependencies=_auth)
+app.include_router(trarpes_router, dependencies=_auth)
 
 
 @app.get("/health")
