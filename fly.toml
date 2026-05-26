@@ -1,0 +1,32 @@
+# Fly.io config for the ChatARPES backend.
+# Run `fly launch --copy-config --no-deploy` once to claim the app name,
+# then `fly deploy` to ship changes. See docs/DEPLOY.md.
+
+app = "chatarpes-backend"      # change to a globally-unique name on first launch
+primary_region = "sjc"          # San Jose — closest to Berkeley. `fly platform regions` for others.
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8000"
+  LLM_MODEL = "claude-haiku-4-5-20251001"
+  # ANTHROPIC_API_KEY and ALLOWED_ORIGINS are set via `fly secrets set`,
+  # not committed here.
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"   # scale to zero when idle to keep cost ~$0
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 20
+    hard_limit = 40
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512               # bump to 1024 if .pxt processing OOMs
