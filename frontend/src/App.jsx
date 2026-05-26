@@ -7,7 +7,7 @@ import "katex/dist/katex.min.css";
 import TrarpesWidget from "./components/TrarpesWidget";
 import { gatherDroppedFiles } from "./utils/dragAndDrop";
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /** Replace [Source: filename, Section X] with clickable PDF links */
 function CitedMarkdown({ content }) {
