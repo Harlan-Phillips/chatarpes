@@ -17,6 +17,14 @@ LLM_MODEL = os.getenv("LLM_MODEL", "claude-haiku-4-5-20251001")  # Recommended f
 MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "100"))
 TEMP_DATA_DIR = os.getenv("TEMP_DATA_DIR", "/tmp/chatarpes")
 
+# TR-ARPES data directory — where scan_NNN.pxt files live for discovery.
+# Defaults to the repo's data/sample_pxt/ so `uvicorn app.main:app` just works.
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TRARPES_DATA_DIR = os.getenv(
+    "TRARPES_DATA_DIR",
+    os.path.join(_PROJECT_ROOT, "data", "sample_pxt"),
+)
+
 # Auth
 # PLACEHOLDER: Decide auth method with lab lead
 AUTH_METHOD = os.getenv("AUTH_METHOD", "none")  # "google_oauth", "passphrase", "calnet", "none"
