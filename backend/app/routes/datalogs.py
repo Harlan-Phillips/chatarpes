@@ -159,6 +159,38 @@ async def upload_datalogs(files: list[UploadFile] = File(...)) -> _UploadRespons
     return _UploadResponse(uploaded=uploaded, skipped=skipped)
 
 
+@router.post("/reindex-all")
+def reindex_all() -> dict:
+    """Re-run the indexer on every existing data log. Useful after the
+    indexer ships for files that were uploaded earlier. Synchronous —
+    a few seconds per file. Continues past individual failures.
+    """
+    results: list[dict] = []
+    for obj in _list_files_only():
+        try:
+            data = storage_get(DATALOGS_PREFIX, obj.name)
+            meta = index_file(obj.name, data)
+            _write_meta(obj.name, meta)
+            results.append({
+                "name": obj.name,
+                "indexed": meta.get("indexed", False),
+                "material": meta.get("material"),
+                "date": meta.get("date"),
+                "error": meta.get("error"),
+            })
+        except StorageNotConfigured as e:
+            raise HTTPException(status_code=503, detail=str(e))
+        except Exception as e:  # noqa: BLE001
+            results.append({"name": obj.name, "indexed": False, "error": f"{type(e).__name__}: {e}"})
+    indexed = sum(1 for r in results if r.get("indexed"))
+    return {
+        "total": len(results),
+        "indexed": indexed,
+        "failed": len(results) - indexed,
+        "results": results,
+    }
+
+
 @router.post("/{name:path}/reindex", response_model=_IndexEntry)
 def reindex(name: str) -> _IndexEntry:
     """Re-run the indexer on an existing file (e.g. after a transient failure)."""
