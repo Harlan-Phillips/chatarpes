@@ -9,6 +9,45 @@ Each tool maps to a function in the analysis engine.
 # https://docs.anthropic.com/en/api/messages#body-tools
 ANTHROPIC_TOOLS = [
     {
+        "name": "list_datalogs",
+        "description": (
+            "List every lab data log with its extracted metadata (material, "
+            "date, sample names, scan types, summary, keywords). Use this when "
+            "the user asks broad questions about what data exists, or when you "
+            "need to pick which specific files to read for a question. The "
+            "system prompt already contains the current index, so usually you "
+            "only need this if the user asks for a refresh."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
+    {
+        "name": "read_datalog",
+        "description": (
+            "Read the full contents of one data log file (Excel parsed to "
+            "markdown tables, PDFs inlined as documents, text files as text). "
+            "Use this after consulting the data-log index when you need actual "
+            "numbers or details to answer a user question. Prefer reading one "
+            "or two clearly-relevant files over many — readings cost tokens."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": (
+                        "Exact filename from the data-log index, e.g. "
+                        "'2026-05-25_TTS2_log.xlsx'."
+                    ),
+                },
+            },
+            "required": ["name"],
+        },
+    },
+    {
         "name": "trarpes_open",
         "description": (
             "Open the interactive TR-ARPES analysis widget in the chat. Use this "
