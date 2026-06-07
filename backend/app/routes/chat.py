@@ -12,6 +12,8 @@ import anthropic
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
+from app.attachments import file_to_content_blocks
+from app.storage import DATALOGS_PREFIX, UPLOADS_PREFIX, get as storage_get, list_objects
 from app.tools.tool_definitions import ANTHROPIC_TOOLS
 
 router = APIRouter()
@@ -45,9 +47,53 @@ def _load_paper_blocks() -> list[dict]:
     return blocks
 
 
+def _load_datalog_blocks() -> list[dict]:
+    """Load every data log from Tigris as Anthropic content blocks.
+
+    Empty if storage isn't configured or no logs have been uploaded.
+    """
+    blocks: list[dict] = []
+    for obj in list_objects(DATALOGS_PREFIX):
+        try:
+            data = storage_get(DATALOGS_PREFIX, obj.name)
+        except FileNotFoundError:
+            continue
+        blocks.extend(file_to_content_blocks(obj.name, data))
+    return blocks
+
+
+def _load_selected_upload_blocks(names: list[str]) -> list[dict]:
+    """Load the user-selected uploads for this turn."""
+    blocks: list[dict] = []
+    for name in names:
+        if not name or "/" in name or ".." in name:
+            continue
+        try:
+            data = storage_get(UPLOADS_PREFIX, name)
+        except FileNotFoundError:
+            continue
+        blocks.extend(file_to_content_blocks(name, data))
+    return blocks
+
+
 def _build_system_prompt() -> str:
     paper_names = _get_paper_names()
     papers_list = "\n".join(f"  - {name}" for name in paper_names)
+    datalog_names = [o.name for o in list_objects(DATALOGS_PREFIX)]
+    datalogs_section = ""
+    if datalog_names:
+        datalogs_list = "\n".join(f"  - {name}" for name in datalog_names)
+        datalogs_section = f"""
+
+## Lab data logs
+You also have the following lab data logs attached to every conversation.
+Treat them as authoritative records of measurements, sample names, dates,
+and instrument settings. Reference them when the user asks about past
+experiments, sample inventory, or specific scans.
+
+Available data logs:
+{datalogs_list}
+"""
 
     return f"""You are ChatARPES, an AI assistant for ARPES (Angle-Resolved Photoemission Spectroscopy) researchers in the Harmony Lab.
 
@@ -67,7 +113,7 @@ Available papers:
 Example citation: [Source: Buss et al. - 2019 - A setup for extreme-ultraviolet ultrafast angle-re.pdf, Section III.A]
 
 Always include at least one citation per factual claim from the paper. Place citations at the end of the relevant sentence or paragraph.
-
+{datalogs_section}
 ## Interactive TR-ARPES tool
 When the user wants to compare two TR-ARPES scans, compute a pump-probe differential,
 explore scan_NNN.pxt data, "open the TR-ARPES analysis", or when the user's message
@@ -120,20 +166,35 @@ async def chat(request: Request):
     """Chat endpoint - streams thinking + response in Vercel AI SDK data stream protocol."""
     body = await request.json()
     raw_messages = body.get("messages", [])
+    selected_uploads: list[str] = body.get("selected_uploads", []) or []
 
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     paper_blocks = _load_paper_blocks()
+    datalog_blocks = _load_datalog_blocks()
+    upload_blocks = _load_selected_upload_blocks(selected_uploads)
 
-    # Build messages, attaching papers to first user turn
+    # Reference docs (papers + data logs) attach to the FIRST user turn so
+    # they ride the prompt cache across the whole conversation. Ad-hoc
+    # user uploads attach to the LAST user turn — that's the turn that
+    # selected them.
+    last_user_idx = max(
+        (i for i, m in enumerate(raw_messages) if m["role"] == "user"),
+        default=-1,
+    )
+
     messages = []
     first_user_seen = False
-    for msg in raw_messages:
-        if msg["role"] == "user" and not first_user_seen:
-            first_user_seen = True
-            messages.append({
-                "role": "user",
-                "content": paper_blocks + [{"type": "text", "text": msg["content"]}],
-            })
+    for i, msg in enumerate(raw_messages):
+        if msg["role"] == "user":
+            content: list[dict] = []
+            if not first_user_seen:
+                first_user_seen = True
+                content.extend(paper_blocks)
+                content.extend(datalog_blocks)
+            if i == last_user_idx and upload_blocks:
+                content.extend(upload_blocks)
+            content.append({"type": "text", "text": msg["content"]})
+            messages.append({"role": "user", "content": content})
         else:
             messages.append({"role": msg["role"], "content": msg["content"]})
 

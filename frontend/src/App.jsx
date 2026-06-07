@@ -5,6 +5,8 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import TrarpesWidget from "./components/TrarpesWidget";
+import DataLogsModal from "./components/DataLogsModal";
+import UploadsPanel from "./components/UploadsPanel";
 import { gatherDroppedFiles } from "./utils/dragAndDrop";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -102,6 +104,11 @@ export default function App() {
   const [attachments, setAttachments] = useState([]); // [{name, scan_num, compat, status: "uploading"|"done"|"error", error?}]
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [dropOverlay, setDropOverlay] = useState(false);
+
+  // Documents flow (data logs + ad-hoc user uploads)
+  const [dataLogsOpen, setDataLogsOpen] = useState(false);
+  const [uploadsOpen, setUploadsOpen] = useState(false);
+  const [selectedUploads, setSelectedUploads] = useState([]); // filenames to attach to next message
   const attachMenuRef = useRef(null);
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
@@ -240,9 +247,13 @@ export default function App() {
       history[history.length - 1] = { role: "user", content: augmented };
     }
 
+    // Capture selected uploads for this turn, then clear (one-shot UX).
+    const uploadsForTurn = [...selectedUploads];
+
     // Clear attachments + mode after send (one-shot, like Claude)
     setTrarpesMode(false);
     setAttachments([]);
+    setSelectedUploads([]);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -251,7 +262,10 @@ export default function App() {
       const res = await fetch(`${API_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({
+          messages: history,
+          selected_uploads: uploadsForTurn,
+        }),
         signal: controller.signal,
       });
 
@@ -340,7 +354,7 @@ export default function App() {
       setStatus("idle");
       abortRef.current = null;
     }
-  }, [messages, trarpesMode, attachments]);
+  }, [messages, trarpesMode, attachments, selectedUploads]);
 
   function submit(text) {
     const msg = (text || input).trim();
@@ -387,11 +401,24 @@ export default function App() {
         <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center">
           <span className="text-white text-sm font-bold">C</span>
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-base font-semibold text-gray-900">ChatARPES</h1>
           <p className="text-xs text-gray-500">TR-ARPES Setup Assistant</p>
         </div>
+        <button
+          onClick={() => setDataLogsOpen(true)}
+          className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+          title="Manage persistent lab data logs"
+        >
+          Data logs
+        </button>
       </header>
+
+      <DataLogsModal
+        apiUrl={API_URL}
+        open={dataLogsOpen}
+        onClose={() => setDataLogsOpen(false)}
+      />
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto">
@@ -500,6 +527,40 @@ export default function App() {
       {/* Input area */}
       <div className="border-t border-gray-200 px-4 py-4">
         <div className="max-w-3xl mx-auto">
+          {/* User uploads panel (collapsible) */}
+          <UploadsPanel
+            apiUrl={API_URL}
+            open={uploadsOpen}
+            onClose={() => setUploadsOpen(false)}
+            selectedNames={selectedUploads}
+            onSelectionChange={setSelectedUploads}
+          />
+
+          {/* Inline summary when panel is collapsed but files are selected */}
+          {!uploadsOpen && selectedUploads.length > 0 && (
+            <div className="mb-2 flex items-center gap-2 text-xs">
+              <span className="text-gray-500">Attaching to next message:</span>
+              {selectedUploads.map((name) => (
+                <span
+                  key={name}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 font-mono"
+                >
+                  {name}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedUploads((prev) => prev.filter((n) => n !== name))
+                    }
+                    className="opacity-60 hover:opacity-100"
+                    title="Remove"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Attachment chips */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
@@ -625,6 +686,29 @@ export default function App() {
                 }}
               />
             </div>
+
+            {/* Files panel toggle */}
+            <button
+              type="button"
+              onClick={() => setUploadsOpen((v) => !v)}
+              disabled={isLoading}
+              className={`text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 border transition-colors ${
+                uploadsOpen || selectedUploads.length > 0
+                  ? "bg-gray-800 border-gray-800 text-white hover:bg-gray-700"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              } disabled:opacity-50`}
+              title="Open files panel — upload documents and pick which to attach to the next message"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+              Files
+              {selectedUploads.length > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] leading-none">
+                  {selectedUploads.length}
+                </span>
+              )}
+            </button>
 
             {/* TR-ARPES tool pill (toggles mode — no immediate spawn) */}
             <button

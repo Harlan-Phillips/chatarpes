@@ -26,7 +26,9 @@ from slowapi.util import get_remote_address
 
 from app.auth import require_auth
 from app.routes.chat import router as chat_router
+from app.routes.datalogs import router as datalogs_router
 from app.routes.trarpes import router as trarpes_router
+from app.routes.uploads import router as uploads_router
 
 # Comma-separated list of allowed origins. Defaults to localhost dev URLs.
 # In production set ALLOWED_ORIGINS to your frontend's deployed origin(s),
@@ -57,6 +59,8 @@ app.add_middleware(
 _auth = [Depends(require_auth)]
 app.include_router(chat_router, dependencies=_auth)
 app.include_router(trarpes_router, dependencies=_auth)
+app.include_router(datalogs_router, dependencies=_auth)
+app.include_router(uploads_router, dependencies=_auth)
 
 
 @app.get("/health")

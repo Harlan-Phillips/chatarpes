@@ -8,6 +8,13 @@ slowapi>=0.1.9
 # LLM
 anthropic>=0.39.0
 
+# Storage (Tigris / S3-compatible). Provisioned via `fly storage create`.
+boto3>=1.34.0
+
+# Data log parsing (Excel → markdown table)
+openpyxl>=3.1.0
+pandas>=2.0.0
+
 # Option A: Local model
 # vllm>=0.4.0
 # or
